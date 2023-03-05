@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style media="screen">
+        *,
+        *:before,
+        *:after {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+            color: white;
+        }
+
+        body {
+            background-color: #080710;
+        }
+
+        .background {
+            width: 430px;
+            height: 520px;
+            position: absolute;
+            transform: translate(-50%, -50%);
+            left: 50%;
+            top: 50%;
+        }
+
+        #form * {
+            font-family: 'Poppins', sans-serif;
+            letter-spacing: 0.5px;
+            outline: none;
+            border: none;
+        }
+
+        #form {
+            height: 720px;
+            width: 1000px;
+            background-color: rgba(255, 255, 255, 0.13);
+            position: absolute;
+            transform: translate(-50%, -50%);
+            top: 50%;
+            left: 50%;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 40px rgba(8, 7, 16, 0.6);
+            padding: 50px 35px;
+        }
+
+        button {
+            position: relative;
+
+            background-color: #ffffff;
+            color: #080710;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 40px rgba(8, 7, 16, 0.6);
+            padding: 15px 0;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 5px;
+            cursor: pointer;
+
+        }
+
+        button:hover {
+            font-size: 20px;
+            background-color: #23a2f6;
+            backdrop-filter: blur(10px);
+
+        }
+
+        input {
+            display: block;
+            height: 50px;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.07);
+            border-radius: 3px;
+            padding: 0 10px;
+            margin-top: 8px;
+            font-size: 14px;
+            font-weight: 300;
+        }
+
+        #namedp {
+            background-color: rgba(255, 255, 255, 0.13);
+            position: relative;
+            font-size: 30px;
+            margin:15px;
+            float: right;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 40px rgba(8, 7, 16, 0.6);
+            padding: 10px 10px;
+        }
+
+        #stuff {
+            position: fixed;
+            width: 90%;
+            top: 90%;
+            display: grid;
+            grid-template-columns: 50% 30% 20%;
+            column-gap: 10px;
+        }
+
+        #chats {
+            width: 100%;
+            height: 90%;
+            overflow-wrap: break-word;
+            overflow-y: auto;
+            overflow-anchor: bottom;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-image: linear-gradient(180deg, #d0368a 0%, #708ad4 99%);
+            box-shadow: inset 2px 2px 5px 0 rgba(#fff, 0.5);
+            border-radius: 100px;
+        }
+        html{
+            scrollbar-color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="namedp"></div>
+    <div id="form">
+        <div id="chats"></div>
+        <div id="stuff">
+            <input type="text" name="" id="hi" placeholder="message">
+            <input type="text" name="" id="u" placeholder="to">
+            <button id="b">Send Message</button>
+        </div>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+        const myName = getCookie("email");
+        document.getElementById("namedp").appendChild(document.createTextNode(`${myName}`))
+        var socket = io();
+        document.getElementById("hi").addEventListener("change", (e) => {
+            socket.emit("typing", e.target.value);
+        })
+        document.getElementById("b").addEventListener("click", (e) => {
+            socket.emit("msg", JSON.stringify({ msg: document.getElementById("hi").value, to: document.getElementById("u").value, from: myName }));
+            document.getElementById("chats").appendChild(document.createElement("br"));
+            document.getElementById("chats").appendChild(document.createTextNode(myName));
+            document.getElementById("chats").appendChild(document.createTextNode(":"));
+
+            document.getElementById("chats").appendChild(document.createTextNode(document.getElementById("hi").value));
+        })
+
+        socket.on(`msg`, (msg) => {
+            if (JSON.parse(msg).to == myName) {
+                document.getElementById("chats").appendChild(document.createElement("br"));
+                document.getElementById("chats").appendChild(document.createTextNode(JSON.parse(msg).from));
+                document.getElementById("chats").appendChild(document.createTextNode(":"));
+                document.getElementById("chats").appendChild(document.createTextNode(JSON.parse(msg).msg));
+
+            }
+        })
+    </script>
+    <script>
+        const Alldata = [];
+        const getchats = async () => {
+            const res = await fetch("/allmessages", {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: myName
+                }),
+                method: "POST"
+            })
+            let data = await res.json();
+            data = data.filter(x => x.to == myName);
+            console.log(data);
+            console.log(myName);
+            return data;
+        }
+
+        const getother = async () => {
+            const res = await fetch("/other", {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: myName
+                }),
+                method: "POST"
+            })
+            let data = await res.json();
+            data = data.filter(x => x.from == myName);
+            console.log(data);
+            console.log(myName);
+            return data;
+        }
+        Promise.all([getchats(), getother()]).then(values => {
+            console.log("values ", values)
+            Alldata.push(...values[0]);
+            Alldata.push(...values[1]);
+            Alldata.sort((a, b) => a.timestamp - b.timestamp);
+            for (var i = 0; i < Alldata.length; i++) {
+                document.getElementById("chats").appendChild(document.createTextNode(Alldata[i].from + ':' + Alldata[i].content));
+                document.getElementById("chats").appendChild(document.createElement("br"));
+            }
+        })
+    </script>
+
+</body>
+
+</html>
